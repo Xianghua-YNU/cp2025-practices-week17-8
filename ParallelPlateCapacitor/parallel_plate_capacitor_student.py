@@ -27,8 +27,8 @@ def solve_laplace_jacobi(xgrid, ygrid, w, d, tol=1e-5):
     yT = (ygrid + d) // 2
     
     # Set boundary conditions for plates
-    u[yT, xL:xR+1] = 100.0  # Top plate: +100V
-    u[yB, xL:xR+1] = -100.0  # Bottom plate: -100V
+    u[yT, :] = 100.0  # Top plate: +100V
+    u[yB, :] = -100.0  # Bottom plate: -100V
     
     iterations = 0
     max_iter = 10000
@@ -82,8 +82,8 @@ def solve_laplace_sor(xgrid, ygrid, w, d, omega=1.25, Niter=1000, tol=1e-5):
     yT = (ygrid + d) // 2
     
     # Set boundary conditions for plates
-    u[yT, xL:xR+1] = 100.0  # Top plate: +100V
-    u[yB, xL:xR+1] = -100.0  # Bottom plate: -100V
+    u[yT, :] = 100.0  # Top plate: +100V
+    u[yB, :] = -100.0  # Bottom plate: -100V
     
     convergence_history = []
     
@@ -186,16 +186,4 @@ if __name__ == "__main__":
     print(f"   Speedup: {iter_jacobi/iter_sor:.1f}x iterations, {time_jacobi/time_sor:.2f}x time")
     
     # Plot results
-    plot_results(x, y, u_jacobi, "Jacobi Method")
-    plot_results(x, y, u_sor, "SOR Method")
-    
-    # Plot convergence comparison
-    plt.figure(figsize=(10, 6))
-    plt.semilogy(range(len(conv_history_jacobi)), conv_history_jacobi, 'r-', label='Jacobi Method')
-    plt.semilogy(range(len(conv_history_sor)), conv_history_sor, 'b-', label='SOR Method')
-    plt.xlabel('Iteration')
-    plt.ylabel('Maximum Change')
-    plt.title('Convergence Comparison')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
+    plot_results(x, y
