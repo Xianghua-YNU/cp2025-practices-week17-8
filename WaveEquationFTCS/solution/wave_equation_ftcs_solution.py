@@ -109,4 +109,4 @@ if __name__ == "__main__":
         return line,
 
     ani = FuncAnimation(fig, update, frames=t_sol.size, interval=1, blit=True)
-    plt.show()
+    plt.show()    
