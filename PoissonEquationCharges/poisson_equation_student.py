@@ -66,56 +66,21 @@ def solve_poisson_equation(M: int = 100, target: float = 1e-6, max_iterations: i
     
     # TODO: 主迭代循环
     # while delta > target and iterations < max_iterations:
-    #     # 1. 使用有限差分公式更新内部网格点
-    #     #    phi[1:-1, 1:-1] = 0.25 * (...)
-    #     # 2. 计算最大变化量
-    #     #    delta = np.max(np.abs(phi - phi_prev))
-    #     # 3. 更新前一步解
-    #     #    phi_prev = np.copy(phi)
-    #     # 4. 增加迭代计数
-    #     #    iterations += 1
+    # 1. 使用有限差分公式更新内部网格点
+    #    phi[1:-1, 1:-1] = 0.25 * (...)
+    # 2. 计算最大变化量
+    #    delta = np.max(np.abs(phi - phi_prev))
+    # 3. 更新前一步解
+    #    phi_prev = np.copy(phi)
+    # 4. 增加迭代计数
+    #    iterations += 1
+    
     
     # TODO: 检查是否收敛
     # converged = (delta <= target)
     
     # TODO: 返回结果
-    # TODO: 设置网格间距
-    h = 1.0
-    
-    # TODO: 初始化电势数组，形状为(M+1, M+1)
-    # 提示：使用 np.zeros() 创建数组
-    
-    # TODO: 创建电荷密度数组
-    # 提示：同样使用 np.zeros() 创建
-    
-    # TODO: 设置电荷分布
-    # 正电荷：rho[60:80, 20:40] = 1.0
-    # 负电荷：rho[20:40, 60:80] = -1.0
-    
-    # TODO: 初始化迭代变量
-    # delta = 1.0  # 用于存储最大变化量
-    # iterations = 0  # 迭代计数器
-    # converged = False  # 收敛标志
-    
-    # TODO: 创建前一步的电势数组副本
-    # 提示：使用 np.copy()
-    
-    # TODO: 主迭代循环
-    # while delta > target and iterations < max_iterations:
-    #     # 1. 使用有限差分公式更新内部网格点
-    #     #    phi[1:-1, 1:-1] = 0.25 * (...)
-    #     # 2. 计算最大变化量
-    #     #    delta = np.max(np.abs(phi - phi_prev))
-    #     # 3. 更新前一步解
-    #     #    phi_prev = np.copy(phi)
-    #     # 4. 增加迭代计数
-    #     #    iterations += 1
-    
-    # TODO: 检查是否收敛
-    # converged = (delta <= target)
-    
-    # TODO: 返回结果
-    phi = np.zeros((M + 1, M + 1), float)
+    phi = np.zeros((M + 1, M + 1), dtype=float)
     phi_prev = np.copy(phi)
     rho = np.zeros((M + 1, M + 1), dtype=float)
     pos_y1, pos_y2 = int(0.6*M), int(0.8*M)
@@ -131,9 +96,9 @@ def solve_poisson_equation(M: int = 100, target: float = 1e-6, max_iterations: i
     while delta > target and iterations < max_iterations:
         # 1. 使用有限差分公式更新内部网格点
         phi[1:-1, 1:-1] = 0.25 * (
-            phi_prev[2:, 1:-1] + phi_prev[:-2, 1:-1] +
-            phi_prev[1:-1, 2:] + phi_prev[1:-1, :-2] +
-            h**2 * rho[1:-1, 1:-1]
+            phi[0:-2, 1:-1] + phi[2:, 1:-1] + 
+            phi[1:-1, :-2] + phi[1:-1, 2:] + 
+            h*h * rho[1:-1, 1:-1]
         )
         # 2. 计算最大变化量
         delta = np.max(np.abs(phi - phi_prev))
