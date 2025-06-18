@@ -1,152 +1,211 @@
 #!/usr/bin/env python3
 """
-Test suite for finite thickness parallel plate capacitor solver
+Module: Finite Thickness Parallel Plate Capacitor Solution
+File: finite_thickness_capacitor_solution.py
+
+Solves the Laplace equation for finite thickness parallel plate capacitor
+using Gauss-Seidel SOR method and calculates charge density distribution.
 """
 
-import unittest
 import numpy as np
-import os
-import sys
-import scipy.ndimage
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+import time
+from scipy.ndimage import laplace
 
-# Add parent directory to module search path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import from student code
-#from solution.finite_thickness_capacitor_solution import (
-from finite_thickness_capacitor_student import (   
-    solve_laplace_sor,
-    calculate_charge_density,
-    plot_results
-)
-
-class TestFiniteThicknessCapacitor(unittest.TestCase):
+def solve_laplace_sor(nx, ny, plate_thickness, plate_separation, omega=1.9, max_iter=10000, tolerance=1e-6):
+    """
+    Solve 2D Laplace equation using Successive Over-Relaxation (SOR) method
+    for finite thickness parallel plate capacitor.
     
-    def setUp(self):
-        """Set up test parameters"""
-        # Test parameters
-        self.nx = 40
-        self.ny = 30
-        self.plate_thickness = 2
-        self.plate_separation = 8
-        self.omega = 1.8
-        self.dx = 1.0 / (self.nx - 1)
-        self.dy = 1.0 / (self.ny - 1)
-        self.tolerance = 1e-4
+    Args:
+        nx (int): Number of grid points in x direction
+        ny (int): Number of grid points in y direction  
+        plate_thickness (int): Thickness of conductor plates in grid points
+        plate_separation (int): Separation between plates in grid points
+        omega (float): Relaxation factor (1.0 < omega < 2.0)
+        max_iter (int): Maximum number of iterations
+        tolerance (float): Convergence tolerance
         
-    def test_student_basic_functionality_20pts(self):
-        """Test basic SOR solver functionality (20 points)"""
-        try:
-            potential = solve_laplace_sor(
-                self.nx, self.ny, self.plate_thickness, self.plate_separation, 
-                self.omega, max_iter=1000, tolerance=1e-5
-            )
+    Returns:
+        tuple: (potential_grid, conductor_mask)
+            - potential_grid: 2D array of electric potential
+            - conductor_mask: Boolean array marking conductor regions
             
-            # Check return type and shape
-            self.assertIsInstance(potential, np.ndarray)
-            self.assertEqual(potential.shape, (self.ny, self.nx))
-            
-            # Check potential range
-            potential_range = np.max(potential) - np.min(potential)
-            self.assertGreater(potential_range, 150.0)
-            self.assertLess(potential_range, 250.0)
-            
-        except NotImplementedError:
-            self.fail("Student has not implemented solve_laplace_sor function")
-        except Exception as e:
-            self.fail(f"solve_laplace_sor function failed with error: {str(e)}")
+    """
+    # Initialize potential grid
+    U = np.zeros((ny, nx))
+    
+    # Create conductor mask
+    conductor_mask = np.zeros((ny, nx), dtype=bool)
+    
+    # Define conductor regions
+    # Upper plate: +100V
+    conductor_left = nx//4
+    conductor_right = nx//4*3
+    y_upper_start = ny // 2 + plate_separation // 2
+    y_upper_end = y_upper_start + plate_thickness
+    conductor_mask[y_upper_start:y_upper_end, conductor_left:conductor_right] = True
+    U[y_upper_start:y_upper_end, conductor_left:conductor_right] = 100.0
+    
+    # Lower plate: -100V
+    y_lower_end = ny // 2 - plate_separation // 2
+    y_lower_start = y_lower_end - plate_thickness
+    conductor_mask[y_lower_start:y_lower_end, conductor_left:conductor_right] = True
+    U[y_lower_start:y_lower_end, conductor_left:conductor_right] = -100.0
+    
+    # Boundary conditions: grounded sides
+    U[:, 0] = 0.0
+    U[:, -1] = 0.0
+    U[0, :] = 0.0
+    U[-1, :] = 0.0
+    
+    # SOR iteration
+    for iteration in range(max_iter):
+        U_old = U.copy()
+        max_error = 0.0
+        
+        # Update interior points (excluding conductors and boundaries)
+        for i in range(1, ny-1):
+            for j in range(1, nx-1):
+                if not conductor_mask[i, j]:  # Skip conductor points
+                    # SOR update formula
+                    
+                    U_new = 0.25 * (U[i+1, j] + U[i-1, j] + U[i, j+1] + U[i, j-1])
+                    U[i, j] = (1 - omega) * U[i, j] + omega * U_new
+                    
+                    # Track maximum error
+                    
+                    error = abs(U[i, j] - U_old[i, j])
+                    max_error = max(max_error, error)
+        
+        # Check convergence
+        
+        if max_error < tolerance:
+            print(f"Converged after {iteration + 1} iterations")
+            break
+    else:
+        print(f"Warning: Maximum iterations ({max_iter}) reached")
+    
+    return U
 
-    def test_student_boundary_conditions_15pts(self):
-        """Test proper boundary condition implementation (15 points)"""
-        try:
-            potential = solve_laplace_sor(
-                self.nx, self.ny, self.plate_thickness, self.plate_separation, 
-                self.omega, max_iter=500, tolerance=1e-4
-            )
-            
-            # Check boundary conditions
-            np.testing.assert_allclose(potential[:, 0], 0.0, atol=1e-3)
-            np.testing.assert_allclose(potential[:, -1], 0.0, atol=1e-3)
-            np.testing.assert_allclose(potential[0, :], 0.0, atol=1e-3)
-            np.testing.assert_allclose(potential[-1, :], 0.0, atol=1e-3)
-            
-        except NotImplementedError:
-            self.fail("Student has not implemented solve_laplace_sor function")
-        except Exception as e:
-            self.fail(f"Boundary condition test failed: {str(e)}")
+def calculate_charge_density(potential_grid, dx, dy):
+    """
+    Calculate charge density using Poisson equation: rho = -1/(4*pi) * nabla^2(U)
     
-    def test_student_charge_density_calculation_15pts(self):
-        """Test charge density calculation (15 points)"""
-        try:
-            # First get a potential solution
-            potential = solve_laplace_sor(
-                self.nx, self.ny, self.plate_thickness, self.plate_separation, 
-                self.omega, max_iter=500, tolerance=1e-4
-            )
-            
-            # Test charge density calculation
-            charge_density = calculate_charge_density(potential, self.dx, self.dy)
-            
-            # Check return type and shape
-            self.assertIsInstance(charge_density, np.ndarray)
-            self.assertEqual(charge_density.shape, potential.shape)
-            
-            # Check that charge density is finite
-            self.assertTrue(np.all(np.isfinite(charge_density)))
-            
-            # Check charge conservation (total charge should be approximately zero)
-            total_charge = np.sum(charge_density) * self.dx * self.dy
-            self.assertLess(abs(total_charge), 0.5)
-            
-            # Check that significant charge exists near conductors
-            max_charge_density = np.max(np.abs(charge_density))
-            self.assertGreater(max_charge_density, 1e-6)
-            
-        except NotImplementedError:
-            self.fail("Student has not implemented calculate_charge_density function")
-        except Exception as e:
-            self.fail(f"Charge density calculation failed: {str(e)}")
+    Args:
+        potential_grid (np.ndarray): 2D electric potential distribution
+        dx (float): Grid spacing in x direction
+        dy (float): Grid spacing in y direction
+        
+    Returns:
+        np.ndarray: 2D charge density distribution
+    """
+    # Calculate Laplacian using scipy.ndimage.laplace
     
-    def test_student_plot_function_5pts(self):
-        """Test plot function (5 points) - basic execution check"""
-        nx, ny = 10, 10
-        dx, dy = 1.0, 1.0
-        
-        # 创建坐标网格
-        x_coords = np.arange(0, nx * dx, dx)
-        y_coords = np.arange(0, ny * dy, dy)
-        
-        # 初始化电势和电荷密度（添加变化值）
-        potential = np.random.rand(ny, nx) * 100  # 随机值0-100
-        charge_density = np.zeros((ny, nx))
-        
-        try:
-            plot_results(potential, charge_density, x_coords, y_coords)
-        except Exception as e:
-            self.fail(f"plot_results function failed with error: {str(e)}")
+    laplacian_U = laplace(potential_grid, mode='nearest') / (dx**2) # Assuming dx=dy
     
-    def test_student_error_handling_5pts(self):
-        """Test error handling and input validation (5 points)"""
-        try:
-            # Test with invalid parameters
-            with self.assertRaises((ValueError, AssertionError, TypeError)):
-                solve_laplace_sor(-10, self.ny, self.plate_thickness, 
-                                self.plate_separation, self.omega)
-            
-            # Test with omega outside valid range
-            potential, convergence, _ = solve_laplace_sor(
-                self.nx, self.ny, self.plate_thickness, self.plate_separation, 
-                0.5, max_iter=100, tolerance=1e-4  # omega < 1.0
-            )
-            # Should either raise error or handle gracefully
-            self.assertTrue(len(convergence) > 0)
-            
-        except NotImplementedError:
-            self.fail("Student has not implemented solve_laplace_sor function")
-        except Exception:
-            # Error handling is implemented (good)
-            pass
+    # Charge density from Poisson equation: rho = -1/(4*pi) * nabla^2(U)
+    
+    rho = -laplacian_U / (4 * np.pi)
+    
+    
+    return rho
 
-if __name__ == '__main__':
-    # Run tests with detailed output
-    unittest.main(verbosity=2)
+
+
+def plot_results(potential, charge_density, x_coords, y_coords):
+    """
+    Create comprehensive visualization of results
+    
+    Args:
+        potential (np.ndarray): 2D electric potential distribution
+        charge_density (np.ndarray): Charge density distribution
+        x_coords (np.ndarray): X coordinate array
+        y_coords (np.ndarray): Y coordinate array
+    """
+    X, Y = np.meshgrid(x_coords, y_coords)
+
+    fig = plt.figure(figsize=(15, 6))
+
+    # Subplot 1: 3D Visualization of Potential 
+    
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax1.plot_wireframe(X, Y, potential, rstride=3, cstride=3, color='r')
+    levels =np.linspace(potential.min(),potential.max(),20)
+    ax1.contour(X, Y, potential, zdir = 'z', offset = potential.min(),levels = levels)
+    ax1.set_title('3D Visualization of Potential')
+    ax1.set_xlabel('X Position')
+    ax1.set_ylabel('Y Position')
+    ax1.set_zlabel('Potential')
+
+    # Subplot 2: 3D Charge Density Distribution
+    
+    ax2 = fig.add_subplot(122, projection='3d')
+    surf = ax2.plot_surface(X, Y, charge_density, cmap='RdBu_r', edgecolor='none')
+    fig.colorbar(surf, ax=ax2, shrink=0.5, aspect=5, label='Charge Density')
+    ax2.set_xlabel('X Position')
+    ax2.set_ylabel('Y Position')
+    ax2.set_zlabel('Charge Density')
+    ax2.set_title('3D Charge Density Distribution')
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+if __name__ == "__main__":
+    # Simulation parameters
+    
+    nx, ny = 120, 100  # Grid dimensions
+    plate_thickness = 10  # Conductor thickness in grid points
+    plate_separation = 40  # Distance between plates
+    omega = 1.9  # SOR relaxation factor
+    
+    # Physical dimensions
+    
+    Lx, Ly = 1.0, 1.0  # Domain size
+    dx = Lx / (nx - 1)
+    dy = Ly / (ny - 1)
+    
+    # Create coordinate arrays
+    
+    x_coords = np.linspace(0, Lx, nx)
+    y_coords = np.linspace(0, Ly, ny)
+    
+    print("Solving finite thickness parallel plate capacitor...")
+    print(f"Grid size: {nx} x {ny}")
+    print(f"Plate thickness: {plate_thickness} grid points")
+    print(f"Plate separation: {plate_separation} grid points")
+    print(f"SOR relaxation factor: {omega}")
+    
+    # Solve Laplace equation
+    
+    start_time = time.time()
+    potential = solve_laplace_sor(
+        nx, ny, plate_thickness, plate_separation, omega
+    )
+    solve_time = time.time() - start_time
+    
+    print(f"Solution completed in {solve_time:.2f} seconds")
+    
+    # Calculate charge density
+    
+    charge_density = calculate_charge_density(potential, dx, dy)
+    
+    # Visualize results
+    
+    plot_results(potential, charge_density, x_coords, y_coords)
+    
+    # Print some statistics
+    
+    print(f"\nPotential statistics:")
+    print(f"  Minimum potential: {np.min(potential):.2f} V")
+    print(f"  Maximum potential: {np.max(potential):.2f} V")
+    print(f"  Potential range: {np.max(potential) - np.min(potential):.2f} V")
+    
+    print(f"\nCharge density statistics:")
+    print(f"  Maximum charge density: {np.max(np.abs(charge_density)):.6f}")
+    print(f"  Total positive charge: {np.sum(charge_density[charge_density > 0]) * dx * dy:.6f}")
+    print(f"  Total negative charge: {np.sum(charge_density[charge_density < 0]) * dx * dy:.6f}")
+    print(f"  Total charge: {np.sum(charge_density) * dx * dy:.6f}")
