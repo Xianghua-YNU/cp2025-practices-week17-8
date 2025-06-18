@@ -185,23 +185,25 @@ def visualize_solution(phi: np.ndarray, M: int = 100) -> None:
     plt.figure(figsize=(10, 8))
 
     # 绘制电势分布
-    plt.imshow(phi, extent=[0, M, 0, M], origin='lower', cmap='RdBu_r')
-
+    im = plt.imshow(phi, extent=[0, M, 0, M], origin='lower', 
+                    cmap='RdBu_r', interpolation='bilinear')
     # 添加颜色条
-    cbar = plt.colorbar()
-    cbar.set_label('电势 (V)')
+    cbar = plt.colorbar(im)
+    cbar.set_label('Electric Potential (V)', fontsize=12)
 
     # 标注电荷位置
     # 正电荷区域
-    plt.fill_betweenx([20, 40], 60, 80, color='yellow', alpha=0.5, label='正电荷')
+    plt.fill_between([20, 40], [60, 60], [80, 80], alpha=0.3, color='red', label='Positive Charge')
     # 负电荷区域
-    plt.fill_betweenx([60, 80], 20, 40, color='cyan', alpha=0.5, label='负电荷')
-    plt.legend()
-
+    plt.fill_between([60, 80], [20, 20], [40, 40], alpha=0.3, color='blue', label='Negative Charge')
+    
     # 添加标题和标签
-    plt.xlabel('X 网格')
-    plt.ylabel('Y 网格')
-    plt.title('二维泊松方程电势分布可视化')
+    plt.xlabel('X 网格', fontsize=12)
+    plt.ylabel('Y 网格', fontsize=12)
+    plt.title('二维泊松方程电势分布可视化', fontsize=14)
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
 
     # 显示图形
     plt.show()
