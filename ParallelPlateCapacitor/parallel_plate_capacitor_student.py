@@ -38,11 +38,13 @@ def solve_laplace_jacobi(xgrid, ygrid, w, d, tol=1e-5):
         u_old = u.copy()
         
         # Jacobi iteration
-        u[1:-1,1:-1] = 0.25*(u[2:,1:-1] + u[:-2,1:-1] + u[1:-1, 2:] + u[1:-1,:-2]) 
-
+        for i in range(1, ygrid-1):
+            for j in range(1, xgrid-1):
+                u[i, j] = 0.25 * (u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1])
+        
         # Maintain boundary conditions
-        u[yT, xL:xR+1] = 100.0
-        u[yB, xL:xR+1] = -100.0
+        u[yT, :] = 100.0
+        u[yB, :] = -100.0
         
         # Calculate convergence metric
         max_change = np.max(np.abs(u - u_old))
@@ -91,19 +93,11 @@ def solve_laplace_sor(xgrid, ygrid, w, d, omega=1.25, Niter=1000, tol=1e-5):
         # SOR iteration
         for i in range(1, ygrid-1):
             for j in range(1, xgrid-1):
-                # Skip plate regions
-                if (i == yT and xL <= j <= xR) or (i == yB and xL <= j <= xR):
-                    continue
-                
-                # Calculate residual
-                r_ij = 0.25 * (u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1])
-                
-                # Apply SOR formula
-                u[i, j] = (1 - omega) * u[i, j] + omega * r_ij
+                u[i, j] = (1 - omega) * u[i, j] + 0.25 * omega * (u[i+1, j] + u[i-1, j] + u[i, j+1] + u[i, j-1])
         
         # Maintain boundary conditions
-        u[yT, xL:xR+1] = 100.0
-        u[yB, xL:xR+1] = -100.0
+        u[yT, :] = 100.0
+        u[yB, :] = -100.0
         
         # Calculate convergence metric
         max_change = np.max(np.abs(u - u_old))
@@ -131,8 +125,8 @@ def plot_results(x, y, u, method_name):
     ax1 = fig.add_subplot(121, projection='3d')
     X, Y = np.meshgrid(x, y)
     ax1.plot_wireframe(X, Y, u, alpha=0.7)
-    levels =np.linspace(u.min(),u.max(),20)
-    ax1.contour(x, y, u, zdir = 'z', offset = u.min(),levels = levels)
+    levels = np.linspace(u.min(), u.max(), 20)
+    ax1.contour(x, y, u, zdir='z', offset=u.min(), levels=levels)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Potential (V)')
@@ -144,7 +138,7 @@ def plot_results(x, y, u, method_name):
     contour = ax2.contour(X, Y, u, levels=levels, colors='red', linestyles='dashed', linewidths=0.8)
     ax2.clabel(contour, inline=True, fontsize=8, fmt='%1.1f')
     
-    EY, EX = np.gradient(-u, 1) # Electric field is the negative gradient of potential (Note: np.gradient returns gradient along rows (y) then columns (x))
+    EY, EX = np.gradient(-u, 1)  # Electric field is the negative gradient of potential (Note: np.gradient returns gradient along rows (y) then columns (x))
     ax2.streamplot(X, Y, EX, EY, density=1.5, color='blue', linewidth=1, arrowsize=1.5, arrowstyle='->')
     
     ax2.set_xlabel('X')
