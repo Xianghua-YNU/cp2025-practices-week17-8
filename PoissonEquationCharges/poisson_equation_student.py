@@ -229,10 +229,17 @@ def analyze_solution(phi: np.ndarray, iterations: int, converged: bool) -> None:
     # TODO: 找到极值位置
     # 提示：使用 np.unravel_index() 和 np.argmax(), np.argmin()
     
+    print(f"分析:")
     print(f"迭代次数: {iterations}")
     print(f"是否收敛: {converged}")
     print(f"最大电势: {np.max(phi):.6f} V")
     print(f"最小电势: {np.min(phi):.6f} V")
+    print(f"潜在范围: {np.max(phi) - np.min(phi):.6f} V")
+
+    max_idx = np.unravel_index(np.argmax(phi), phi.shape)
+    min_idx = np.unravel_index(np.argmin(phi), phi.shape)
+    print(f"最大潜在位置: ({max_idx[0]}, {max_idx[1]})")
+    print(f"最小潜在位置: ({min_idx[0]}, {min_idx[1]})")
 
 if __name__ == "__main__":
     # 测试代码区域
@@ -244,12 +251,32 @@ if __name__ == "__main__":
     max_iter = 10000
     
     # TODO: 调用求解函数
-    # phi, iterations, converged = solve_poisson_equation(M, target, max_iter)
+    phi, iterations, converged = solve_poisson_equation(M, target, max_iter)
     
     # TODO: 分析结果
-    # analyze_solution(phi, iterations, converged)
+    analyze_solution(phi, iterations, converged)
     
     # TODO: 可视化结果
-    # visualize_solution(phi, M)
-    
+    visualize_solution(phi, M)
+    potential along center lines
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(1, 2, 1)
+    center_y = M // 2
+    plt.plot(phi[center_y, :], 'b-', linewidth=2)
+    plt.xlabel('x (grid points)')
+    plt.ylabel('Potential (V)')
+    plt.title(f'Potential along y = {center_y}')
+    plt.grid(True, alpha=0.3)
+
+    plt.subplot(1, 2, 2)
+    center_x = M // 2
+    plt.plot(phi[:, center_x], 'r-', linewidth=2)
+    plt.xlabel('y (grid points)')
+    plt.ylabel('Potential (V)')
+    plt.title(f'Potential along x = {center_x}')
+    plt.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()
     print("请实现上述函数以完成项目！")
