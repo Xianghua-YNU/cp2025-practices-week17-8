@@ -31,6 +31,7 @@ def solve_laplace_sor(nx, ny, plate_thickness, plate_separation, omega=1.9, max_
         tuple: (potential_grid, conductor_mask)
             - potential_grid: 2D array of electric potential
             - conductor_mask: Boolean array marking conductor regions
+            
     """
     # Initialize potential grid
     U = np.zeros((ny, nx))
@@ -69,14 +70,17 @@ def solve_laplace_sor(nx, ny, plate_thickness, plate_separation, omega=1.9, max_
             for j in range(1, nx-1):
                 if not conductor_mask[i, j]:  # Skip conductor points
                     # SOR update formula
+                    
                     U_new = 0.25 * (U[i+1, j] + U[i-1, j] + U[i, j+1] + U[i, j-1])
                     U[i, j] = (1 - omega) * U[i, j] + omega * U_new
                     
                     # Track maximum error
+                    
                     error = abs(U[i, j] - U_old[i, j])
                     max_error = max(max_error, error)
         
         # Check convergence
+        
         if max_error < tolerance:
             print(f"Converged after {iteration + 1} iterations")
             break
@@ -102,6 +106,7 @@ def calculate_charge_density(potential_grid, dx, dy):
     laplacian_U = laplace(potential_grid, mode='nearest') / (dx**2) # Assuming dx=dy
     
     # Charge density from Poisson equation: rho = -1/(4*pi) * nabla^2(U)
+    
     rho = -laplacian_U / (4 * np.pi)
     
     
@@ -124,6 +129,7 @@ def plot_results(potential, charge_density, x_coords, y_coords):
     fig = plt.figure(figsize=(15, 6))
 
     # Subplot 1: 3D Visualization of Potential 
+    
     ax1 = fig.add_subplot(121, projection='3d')
     ax1.plot_wireframe(X, Y, potential, rstride=3, cstride=3, color='r')
     levels =np.linspace(potential.min(),potential.max(),20)
@@ -134,6 +140,7 @@ def plot_results(potential, charge_density, x_coords, y_coords):
     ax1.set_zlabel('Potential')
 
     # Subplot 2: 3D Charge Density Distribution
+    
     ax2 = fig.add_subplot(122, projection='3d')
     surf = ax2.plot_surface(X, Y, charge_density, cmap='RdBu_r', edgecolor='none')
     fig.colorbar(surf, ax=ax2, shrink=0.5, aspect=5, label='Charge Density')
@@ -149,17 +156,20 @@ def plot_results(potential, charge_density, x_coords, y_coords):
 
 if __name__ == "__main__":
     # Simulation parameters
+    
     nx, ny = 120, 100  # Grid dimensions
     plate_thickness = 10  # Conductor thickness in grid points
     plate_separation = 40  # Distance between plates
     omega = 1.9  # SOR relaxation factor
     
     # Physical dimensions
+    
     Lx, Ly = 1.0, 1.0  # Domain size
     dx = Lx / (nx - 1)
     dy = Ly / (ny - 1)
     
     # Create coordinate arrays
+    
     x_coords = np.linspace(0, Lx, nx)
     y_coords = np.linspace(0, Ly, ny)
     
@@ -170,6 +180,7 @@ if __name__ == "__main__":
     print(f"SOR relaxation factor: {omega}")
     
     # Solve Laplace equation
+    
     start_time = time.time()
     potential = solve_laplace_sor(
         nx, ny, plate_thickness, plate_separation, omega
@@ -179,12 +190,15 @@ if __name__ == "__main__":
     print(f"Solution completed in {solve_time:.2f} seconds")
     
     # Calculate charge density
+    
     charge_density = calculate_charge_density(potential, dx, dy)
     
     # Visualize results
+    
     plot_results(potential, charge_density, x_coords, y_coords)
     
     # Print some statistics
+    
     print(f"\nPotential statistics:")
     print(f"  Minimum potential: {np.min(potential):.2f} V")
     print(f"  Maximum potential: {np.max(potential):.2f} V")
