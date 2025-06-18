@@ -79,7 +79,71 @@ def solve_poisson_equation(M: int = 100, target: float = 1e-6, max_iterations: i
     # converged = (delta <= target)
     
     # TODO: 返回结果
-    raise NotImplementedError(f"请在 {__file__} 中实现此函数")
+    # TODO: 设置网格间距
+    h = 1.0
+    
+    # TODO: 初始化电势数组，形状为(M+1, M+1)
+    # 提示：使用 np.zeros() 创建数组
+    
+    # TODO: 创建电荷密度数组
+    # 提示：同样使用 np.zeros() 创建
+    
+    # TODO: 设置电荷分布
+    # 正电荷：rho[60:80, 20:40] = 1.0
+    # 负电荷：rho[20:40, 60:80] = -1.0
+    
+    # TODO: 初始化迭代变量
+    # delta = 1.0  # 用于存储最大变化量
+    # iterations = 0  # 迭代计数器
+    # converged = False  # 收敛标志
+    
+    # TODO: 创建前一步的电势数组副本
+    # 提示：使用 np.copy()
+    
+    # TODO: 主迭代循环
+    # while delta > target and iterations < max_iterations:
+    #     # 1. 使用有限差分公式更新内部网格点
+    #     #    phi[1:-1, 1:-1] = 0.25 * (...)
+    #     # 2. 计算最大变化量
+    #     #    delta = np.max(np.abs(phi - phi_prev))
+    #     # 3. 更新前一步解
+    #     #    phi_prev = np.copy(phi)
+    #     # 4. 增加迭代计数
+    #     #    iterations += 1
+    
+    # TODO: 检查是否收敛
+    # converged = (delta <= target)
+    
+    # TODO: 返回结果
+    phi = np.zeros((M + 1, M + 1), float)
+    rho = np.zeros((M + 1, M + 1), float)
+    rho[60:80, 20:40] = 1.0   # 正电荷
+    rho[20:40, 60:80] = -1.0  # 负电荷
+    delta = 1.0  # 用于存储最大变化量
+    iterations = 0  # 迭代计数器
+    converged = False  # 收敛标志
+    phi_prev = np.copy(phi)
+    while delta > target and iterations < max_iterations:
+        # 1. 使用有限差分公式更新内部网格点
+        phi[1:-1, 1:-1] = 0.25 * (
+            phi_prev[2:, 1:-1] + phi_prev[:-2, 1:-1] +
+            phi_prev[1:-1, 2:] + phi_prev[1:-1, :-2] +
+            h**2 * rho[1:-1, 1:-1]
+        )
+        # 2. 计算最大变化量
+        delta = np.max(np.abs(phi - phi_prev))
+
+        # 3. 更新前一步解
+        phi_prev = np.copy(phi)
+
+        # 4. 增加迭代计数
+        iterations += 1
+
+    # 检查是否收敛
+    converged = (delta <= target)
+
+    # 返回结果
+    return phi, iterations, converged
 
 def visualize_solution(phi: np.ndarray, M: int = 100) -> None:
     """
@@ -112,7 +176,30 @@ def visualize_solution(phi: np.ndarray, M: int = 100) -> None:
     # TODO: 显示图形
     # plt.show()
     
-    raise NotImplementedError(f"请在 {__file__} 中实现此函数")
+    # 创建图形
+    plt.figure(figsize=(10, 8))
+
+    # 绘制电势分布
+    plt.imshow(phi, extent=[0, M, 0, M], origin='lower', cmap='RdBu_r')
+
+    # 添加颜色条
+    cbar = plt.colorbar()
+    cbar.set_label('电势 (V)')
+
+    # 标注电荷位置
+    # 正电荷区域
+    plt.fill_betweenx([20, 40], 60, 80, color='yellow', alpha=0.5, label='正电荷')
+    # 负电荷区域
+    plt.fill_betweenx([60, 80], 20, 40, color='cyan', alpha=0.5, label='负电荷')
+    plt.legend()
+
+    # 添加标题和标签
+    plt.xlabel('X 网格')
+    plt.ylabel('Y 网格')
+    plt.title('二维泊松方程电势分布可视化')
+
+    # 显示图形
+    plt.show()
 
 def analyze_solution(phi: np.ndarray, iterations: int, converged: bool) -> None:
     """
@@ -135,7 +222,10 @@ def analyze_solution(phi: np.ndarray, iterations: int, converged: bool) -> None:
     # TODO: 找到极值位置
     # 提示：使用 np.unravel_index() 和 np.argmax(), np.argmin()
     
-    raise NotImplementedError(f"请在 {__file__} 中实现此函数")
+    print(f"迭代次数: {iterations}")
+    print(f"是否收敛: {converged}")
+    print(f"最大电势: {np.max(phi):.6f} V")
+    print(f"最小电势: {np.min(phi):.6f} V")
 
 if __name__ == "__main__":
     # 测试代码区域
